@@ -3,31 +3,19 @@ import numpy as np
 
 class RBM:
   
-  def __init__(self, num_visible, num_hidden):
+  def __init__(self, num_visible, num_hidden, learning_rate = 0.1):
     self.num_hidden = num_hidden
     self.num_visible = num_visible
-    self.debug_print = True
+    self.learning_rate = learning_rate
 
     # Initialize a weight matrix, of dimensions (num_visible x num_hidden), using
-    # a uniform distribution between -sqrt(6. / (num_hidden + num_visible))
-    # and sqrt(6. / (num_hidden + num_visible)). One could vary the 
-    # standard deviation by multiplying the interval with appropriate value.
-    # Here we initialize the weights with mean 0 and standard deviation 0.1. 
-    # Reference: Understanding the difficulty of training deep feedforward 
-    # neural networks by Xavier Glorot and Yoshua Bengio
-    np_rng = np.random.RandomState(1234)
-
-    self.weights = np.asarray(np_rng.uniform(
-			low=-0.1 * np.sqrt(6. / (num_hidden + num_visible)),
-                       	high=0.1 * np.sqrt(6. / (num_hidden + num_visible)),
-                       	size=(num_visible, num_hidden)))
-
-
+    # a Gaussian distribution with mean 0 and standard deviation 0.1.
+    self.weights = 0.1 * np.random.randn(self.num_visible, self.num_hidden)    
     # Insert weights for the bias units into the first row and first column.
     self.weights = np.insert(self.weights, 0, 0, axis = 0)
     self.weights = np.insert(self.weights, 0, 0, axis = 1)
 
-  def train(self, data, max_epochs = 1000, learning_rate = 0.1):
+  def train(self, data, max_epochs = 1000):
     """
     Train the machine.
 
@@ -46,7 +34,6 @@ class RBM:
       # (This is the "positive CD phase", aka the reality phase.)
       pos_hidden_activations = np.dot(data, self.weights)      
       pos_hidden_probs = self._logistic(pos_hidden_activations)
-      pos_hidden_probs[:,0] = 1 # Fix the bias unit.
       pos_hidden_states = pos_hidden_probs > np.random.rand(num_examples, self.num_hidden + 1)
       # Note that we're using the activation *probabilities* of the hidden states, not the hidden states       
       # themselves, when computing associations. We could also use the states; see section 3 of Hinton's 
@@ -65,11 +52,10 @@ class RBM:
       neg_associations = np.dot(neg_visible_probs.T, neg_hidden_probs)
 
       # Update weights.
-      self.weights += learning_rate * ((pos_associations - neg_associations) / num_examples)
+      self.weights += self.learning_rate * ((pos_associations - neg_associations) / num_examples)
 
       error = np.sum((data - neg_visible_probs) ** 2)
-      if self.debug_print:
-        print("Epoch %s: error is %s" % (epoch, error))
+      print("Epoch %s: error is %s" % (epoch, error))
 
   def run_visible(self, data):
     """
